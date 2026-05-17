@@ -10,7 +10,8 @@
         0
       ],
       "id": "3db56b91-efbf-44dc-8bdc-15babde53b70",
-      "name": "When clicking ‘Execute workflow’"
+      "name": "When clicking \u2018Execute workflow\u2019",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -30,7 +31,8 @@
         0
       ],
       "id": "272ed480-8b20-4213-8245-09f4b57d5041",
-      "name": "Fetch Cava RSS"
+      "name": "Fetch Cava RSS",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -50,7 +52,8 @@
         528
       ],
       "id": "bb27013a-b3de-428c-8acd-43afa0f8e162",
-      "name": "Fetch Shake Shack RSS"
+      "name": "Fetch Shake Shack RSS",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -70,7 +73,8 @@
         336
       ],
       "id": "17d3b503-6c03-4ae6-9e57-3fe1831ef79c",
-      "name": "Fetch Chipotle RSS"
+      "name": "Fetch Chipotle RSS",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -90,7 +94,8 @@
         160
       ],
       "id": "4a2bfc8c-c5d6-41a2-a263-b0a714fedaa0",
-      "name": "Fetch Sweetgreen RSS"
+      "name": "Fetch Sweetgreen RSS",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -104,11 +109,12 @@
         0
       ],
       "id": "a299e92c-60c6-433a-ab96-57451bab83d2",
-      "name": "Parse + Merge RSS"
+      "name": "Parse + Merge RSS",
+      "credentials": {}
     },
     {
       "parameters": {
-        "jsCode": "let fullFeed = '';\n\nfor (const item of items) {\n  fullFeed += item.json.section || '';\n}\n\nconst prompt = `You are a competitive intelligence analyst at Cava, a fast-casual Mediterranean restaurant chain. \n\nBased on the following news headlines from the past week, write a structured competitive intelligence brief.\n\nNEWS HEADLINES:\n${fullFeed}\n\nWrite the brief in this exact format:\n\n# Signal Brief — Week of [insert current date]\n\n## Executive Summary\n2-3 sentences on the most important competitive developments this week.\n\n## Cava\nKey signals and what they mean for Cava's strategy.\n\n## Sweetgreen\nKey signals and what they mean for Cava's strategy.\n\n## Chipotle\nKey signals and what they mean for Cava's strategy.\n\n## Shake Shack\nKey signals and what they mean for Cava's strategy.\n\n## Strategic Implications for Cava\n3-5 bullet points on what Cava should watch, consider, or act on based on this week's signals.`;\n\nreturn [{ json: { prompt: prompt } }];"
+        "jsCode": "let fullFeed = '';\n\nfor (const item of items) {\n  fullFeed += item.json.section || '';\n}\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });\n\nconst prompt = `You are a competitive intelligence analyst at Cava, a fast-casual Mediterranean restaurant chain. \n\nBased on the following news headlines from the past week, write a structured competitive intelligence brief.\n\nNEWS HEADLINES:\n${fullFeed}\n\nWrite the brief in this exact format:\n\n# Signal Brief \u2014 Week of ${dateStr}\n\n## Executive Summary\n2-3 sentences on the most important competitive developments this week.\n\n## Cava\nKey signals and what they mean for Cava's strategy.\n\n## Sweetgreen\nKey signals and what they mean for Cava's strategy.\n\n## Chipotle\nKey signals and what they mean for Cava's strategy.\n\n## Shake Shack\nKey signals and what they mean for Cava's strategy.\n\n## Strategic Implications for Cava\n3-5 bullet points on what Cava should watch, consider, or act on based on this week's signals.`;\n\nreturn [{ json: { prompt: prompt } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -117,30 +123,33 @@
         0
       ],
       "id": "09a2bf39-7261-4e1b-a381-b8815d6a8cd3",
-      "name": "Build Prompt"
+      "name": "Build Prompt",
+      "credentials": {}
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
+              "name": "x-api-key",
+              "value": "REDACTED"
             },
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "anthropic-version",
+              "value": "REDACTED"
+            },
+            {
+              "name": "content-type",
+              "value": "REDACTED"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({model:\"claude-haiku-4-5\",max_tokens:1500,messages:[{role:\"user\",content:$json.prompt}]}) }}",
+        "jsonBody": "REDACTED",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -149,19 +158,14 @@
         832,
         0
       ],
-      "id": "d62a53a8-5d06-453b-96af-1fd0acb9b8f0",
+      "id": "877a45bb-1041-4485-83b8-7f17fae7ba88",
       "name": "Claude API Call",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "gzCCmJb66zPHnxNU",
-          "name": "Header Auth account"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const content = $input.item.json.content;\nconst briefText = content[0].text;\nconst today = new Date().toISOString().split('T')[0];\n\n// Split into chunks of 1800 chars at paragraph boundaries\nconst chunks = [];\nconst paragraphs = briefText.split('\\n');\nlet current = '';\n\nfor (const para of paragraphs) {\n  if ((current + '\\n' + para).length > 1800) {\n    if (current) chunks.push(current.trim());\n    current = para;\n  } else {\n    current = current ? current + '\\n' + para : para;\n  }\n}\nif (current) chunks.push(current.trim());\n\nreturn {\n  chunk1: chunks[0] || '',\n  chunk2: chunks[1] || '',\n  chunk3: chunks[2] || '',\n  chunk4: chunks[3] || '',\n  title: 'Signal Brief — ' + today\n};"
+        "jsCode": "const content = $input.item.json.content;\nconst briefText = content[0].text;\nconst today = new Date().toISOString().split('T')[0];\n\nconst chunks = [];\nconst paragraphs = briefText.split('\\n');\nlet current = '';\n\nfor (const para of paragraphs) {\n  if ((current + '\\n' + para).length > 1800) {\n    if (current) chunks.push(current.trim());\n    current = para;\n  } else {\n    current = current ? current + '\\n' + para : para;\n  }\n}\nif (current) chunks.push(current.trim());\n\nreturn {\n  chunk1: chunks[0] || '',\n  chunk2: chunks[1] || '',\n  chunk3: chunks[2] || '',\n  chunk4: chunks[3] || '',\n  title: 'Signal Brief \u2014 ' + today\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -169,8 +173,9 @@
         1040,
         0
       ],
-      "id": "0d3e19e1-226f-448b-9def-d32de2bc17af",
-      "name": "Extract Brief"
+      "id": "a6616f49-c7f0-4c5f-b315-d6bb11a7324d",
+      "name": "Extract Brief",
+      "credentials": {}
     },
     {
       "parameters": {
@@ -207,19 +212,14 @@
         1248,
         0
       ],
-      "id": "c75e3fa1-7ea7-4b54-bbc2-b9209fb5c4b2",
+      "id": "ff4e1c40-1fd4-46a1-9f56-413f4692cea3",
       "name": "Create a database page",
-      "credentials": {
-        "notionApi": {
-          "id": "nDGyQGrqGJdr5RRc",
-          "name": "Notion account 2"
-        }
-      }
+      "credentials": {}
     }
   ],
   "pinData": {},
   "connections": {
-    "When clicking ‘Execute workflow’": {
+    "When clicking \u2018Execute workflow\u2019": {
       "main": [
         [
           {
@@ -339,7 +339,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "1a96b23d-9f61-418c-b61c-41a1e1577d1f",
+  "versionId": "17a66846-0eeb-42be-a81d-265d036fd8c5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "b29ffed43721c63d1fdde3ed4fcc9c2337d6dc50db5240fbc8d33fb7ddc8ae4d"
