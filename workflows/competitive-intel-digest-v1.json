@@ -1,0 +1,383 @@
+{
+  "name": "competitive-intel-digest-v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3db56b91-efbf-44dc-8bdc-15babde53b70",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://news.google.com/rss/search?q=%22Cava%22&hl=en-US&gl=US&ceid=US:en",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "272ed480-8b20-4213-8245-09f4b57d5041",
+      "name": "Fetch Cava RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://news.google.com/rss/search?q=%22Shake+Shack%22&hl=en-US&gl=US&ceid=US:en",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        528
+      ],
+      "id": "bb27013a-b3de-428c-8acd-43afa0f8e162",
+      "name": "Fetch Shake Shack RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://news.google.com/rss/search?q=%22Chipotle%22&hl=en-US&gl=US&ceid=US:en",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        336
+      ],
+      "id": "17d3b503-6c03-4ae6-9e57-3fe1831ef79c",
+      "name": "Fetch Chipotle RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://news.google.com/rss/search?q=%22Sweetgreen%22&hl=en-US&gl=US&ceid=US:en",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        160
+      ],
+      "id": "4a2bfc8c-c5d6-41a2-a263-b0a714fedaa0",
+      "name": "Fetch Sweetgreen RSS"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const xml = $input.item.json.data || '';\n\nconst feedTitleMatch = xml.match(/<title>(.*?)<\\/title>/);\nconst feedTitle = feedTitleMatch ? feedTitleMatch[1] : '';\n\nlet brand = 'Unknown';\nif (feedTitle.includes('Cava')) brand = 'Cava';\nelse if (feedTitle.includes('Sweetgreen')) brand = 'Sweetgreen';\nelse if (feedTitle.includes('Chipotle')) brand = 'Chipotle';\nelse if (feedTitle.includes('Shake Shack')) brand = 'Shake Shack';\n\nconst titleMatches = [...xml.matchAll(/<title><!\\[CDATA\\[(.*?)\\]\\]><\\/title>|<title>(.*?)<\\/title>/g)];\nconst headlines = titleMatches\n  .slice(1)\n  .map(m => (m[1] || m[2] || '').trim())\n  .filter(t => t.length > 0)\n  .slice(0, 8);\n\nlet section = '\\n## ' + brand + '\\n';\nheadlines.forEach(function(h, idx) {\n  section += (idx + 1) + '. ' + h + '\\n';\n});\n\nreturn { brand: brand, section: section };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        48
+      ],
+      "id": "a299e92c-60c6-433a-ab96-57451bab83d2",
+      "name": "Parse + Merge RSS"
+    },
+    {
+      "parameters": {
+        "jsCode": "let fullFeed = '';\nfor (const item of items) {\n  fullFeed += item.json.section || '';\n}\n\nconst dateStr = 'May 18, 2026';\n\nconst prompt = `HARD CONSTRAINTS — these override everything else:\n1. The entire brief must be under 600 words total. No exceptions.\n2. \"This Week's Take\" must be exactly three sentences. Each sentence must be under 20 words. No subordinate clauses.\n\nYou are a senior strategy analyst at Cava Group. Your job is to write a weekly competitive intelligence brief for Cava's leadership team — people who are busy, skeptical, and already know the headlines. They do not want a summary of news. They want your read on what the news means for Cava.\n\nToday's date is ${dateStr}.\n\nYou have been given the top 8 recent headlines for each of four brands: Cava, Sweetgreen, Chipotle, and Shake Shack. Use these headlines as your evidence base. Do not fabricate facts or cite specific numbers you cannot verify from the headlines. But do reason from the headlines to strategic conclusions.\n\nWRITING RULES — follow these exactly:\n- Write in tight, direct prose. No bullet points anywhere in the brief except the final Watch List section.\n- Every claim must have a so what for Cava. If a sentence does not connect to Cava's competitive position, cut it.\n- Be opinionated. Use phrases like \"This matters because...\", \"The risk for Cava is...\", \"Cava should consider...\"\n- If a brand had no meaningful signals this week, say so in one sentence and move on. Do not pad.\n- The brief should feel like it was written by a person, not generated by an AI.\n- Cut anything that restates a point already made.\n- Never contradict yourself within a section. If the award matters, say why specifically. If it does not, cut it entirely.\n- Never end a brand section on a vague threat or a shrug. End every section with a concrete directional statement for Cava.\n- If a brand is not a direct competitor, say so in one sentence and stop. Do not analyze noise.\n- When making a competitive comparison, name the specific asymmetry. Not \"Cava is smaller\" but \"Cava cannot yet absorb the brand damage that Chipotle can.\"\n- Do not repeat the same idea across two Watch List bullets. Each bullet must be a distinct signal.\n- The final Watch List bullet must be forward-looking: something that has not happened yet but is likely given this week's signals. Frame it as a prediction, not a monitoring task.\n\nOUTPUT FORMAT — use exactly these section headers, in this order:\n\n## This Week's Take\nExactly three sentences. Each under 20 words. No subordinate clauses. This is the lede.\n\n## Cava\nBriefly state the news, then make one clear argument about what it means competitively. Do not undercut the argument. End with one specific action or decision Cava leadership should make right now.\n\n## Sweetgreen\nSynthesize into a narrative. What is the strategic story and what does it mean for Cava? End with a concrete directional statement.\n\n## Chipotle\nWhat does Chipotle's week reveal about the specific competitive gap between Chipotle and Cava — not generically, but in precise terms? End with one thing Cava must do differently because of that gap.\n\n## Shake Shack\nIf not a direct competitor this week, say so in one sentence and stop.\n\n## Watch List\nThree to five bullets. Each names a distinct, concrete signal. No two bullets cover the same underlying idea. Final bullet is a forward-looking prediction based on this week's signals.\n\nHere are this week's headlines:\n${fullFeed}`;\n\nreturn [{ json: { prompt: prompt } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        48
+      ],
+      "id": "09a2bf39-7261-4e1b-a381-b8815d6a8cd3",
+      "name": "Build Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "REDACTED"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {model:\"claude-haiku-4-5-20251001\",max_tokens:1500,messages:[{role:\"user\",content:$('Build Prompt').item.json.prompt}]} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        48
+      ],
+      "id": "877a45bb-1041-4485-83b8-7f17fae7ba88",
+      "name": "Claude API Call"
+    },
+    {
+      "parameters": {
+        "jsCode": "const briefText = $input.item.json.content[0].text;\nconst today = new Date().toISOString().split('T')[0];\n\nconst blocks = [];\n\nfor (const rawLine of briefText.split('\\n')) {\n  const line = rawLine.trimEnd();\n\n  if (!line.trim()) continue;\n\n  if (line.startsWith('## ')) {\n    blocks.push({\n      object: 'block',\n      type: 'heading_2',\n      heading_2: {\n        rich_text: [{ type: 'text', text: { content: line.slice(3).trim() } }]\n      }\n    });\n  } else if (line.match(/^[-*] /)) {\n    blocks.push({\n      object: 'block',\n      type: 'bulleted_list_item',\n      bulleted_list_item: {\n        rich_text: [{ type: 'text', text: { content: line.slice(2).trim() } }]\n      }\n    });\n  } else {\n    blocks.push({\n      object: 'block',\n      type: 'paragraph',\n      paragraph: {\n        rich_text: [{ type: 'text', text: { content: line.trim() } }]\n      }\n    });\n  }\n}\n\nconst title = 'Signal Brief — ' + today;\n\nconst body = JSON.stringify({\n  parent: { database_id: 'e3d8add97b0d4fbd8879468ab3e92b15' },\n  properties: {\n    title: {\n      title: [{ type: 'text', text: { content: title } }]\n    }\n  },\n  children: blocks\n});\n\nreturn [{ json: { body: body, title: title } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        48
+      ],
+      "id": "a6616f49-c7f0-4c5f-b315-d6bb11a7324d",
+      "name": "Extract Brief"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        416,
+        16
+      ],
+      "id": "6c3e149f-f88d-477a-af58-b84469086fcb",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const seenData = $getWorkflowStaticData('global');\nif (!seenData.seenHeadlines) {\n  seenData.seenHeadlines = [];\n}\n\nconst seenSet = new Set(seenData.seenHeadlines);\nconst freshItems = [];\nconst headlineRegex = /^\\d+\\.\\s+(.+)$/;\n\nfor (const item of items) {\n  const { brand, section } = item.json;\n\n  const freshHeadlines = [];\n  for (const line of section.split('\\n')) {\n    const match = line.match(headlineRegex);\n    if (match) {\n      const headline = match[1].trim();\n      if (!seenSet.has(headline)) {\n        freshHeadlines.push(headline);\n        seenSet.add(headline);\n      }\n    }\n  }\n\n  if (freshHeadlines.length === 0) continue;\n\n  let newSection = `\\n## ${brand}\\n`;\n  freshHeadlines.forEach((h, idx) => {\n    newSection += `${idx + 1}. ${h}\\n`;\n  });\n\n  freshItems.push({ json: { brand, section: newSection } });\n}\n\n// Persist back to static data\nseenData.seenHeadlines = [...seenSet];\n\nreturn freshItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        48
+      ],
+      "id": "5117d400-9c32-42fa-acdc-2c1b0a67f890",
+      "name": "Dedeuplicate Headlines"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "REDACTED"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1664,
+        48
+      ],
+      "id": "dbdc0b81-82e7-4dde-b77e-2122000a8749",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Fetch Cava RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Sweetgreen RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Chipotle RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Shake Shack RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Cava RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Sweetgreen RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Chipotle RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Fetch Shake Shack RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Parse + Merge RSS": {
+      "main": [
+        [
+          {
+            "node": "Dedeuplicate Headlines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Claude API Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API Call": {
+      "main": [
+        [
+          {
+            "node": "Extract Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Brief": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Parse + Merge RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedeuplicate Headlines": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "495049f1-1a22-406f-a57c-a6d655422e32",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b29ffed43721c63d1fdde3ed4fcc9c2337d6dc50db5240fbc8d33fb7ddc8ae4d"
+  },
+  "id": "oM3S5gp4bXOsDWMb",
+  "tags": []
+}
